@@ -20,15 +20,29 @@ async function main() {
   `;
 
   let rawText = "";
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
   for await (const message of query({
     prompt,
     options: { systemPrompt: silverHawkSystemPrompt },
   })) {
+    if (message.type === "assistant" && message.message?.usage) {
+      const msgUsage = message.message.usage;
+      usage.input      += msgUsage.input_tokens                ?? 0;
+      usage.output     += msgUsage.output_tokens               ?? 0;
+      usage.cacheRead  += msgUsage.cache_read_input_tokens     ?? 0;
+      usage.cacheWrite += msgUsage.cache_creation_input_tokens ?? 0;
+    }
     if (message.type === "assistant" && message.message?.content) {
       for (const block of message.message.content) {
         if ("text" in block) rawText += block.text;
       }
+    }
+    if (message.type === "result") {
+      // Sonnet 4.6 pricing: $3/MTok in, $15/MTok out, $3.75/MTok cache write, $0.30/MTok cache read
+      const cost = (usage.input * 3.0 + usage.output * 15.0 + usage.cacheWrite * 3.75 + usage.cacheRead * 0.30) / 1_000_000;
+      console.error(`tokens  in=${usage.input} out=${usage.output} cache_read=${usage.cacheRead} cache_write=${usage.cacheWrite}`);
+      console.error(`est. cost  $${cost.toFixed(5)}`);
     }
   }
 
