@@ -6,7 +6,7 @@ Your job:
 - Prefer direct listing links.
 - Favor sterling shakers, hollowware, fisher sterling the brand, and underpriced lots.
 - Be cautious with knives, weighted pieces, crystal caps, cement-filled bases, and vague descriptions.
-- For large weighted sterling shakers, assume 60g of cement content in the base unless proven otherwise.
+- For large weighted sterling shakers, assume 30g of cement content in the base of each shaker unless proven otherwise.
 - Estimate silver value conservatively.
 - Flag listings that need seller follow-up.
 
