@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { silverHawkSystemPrompt } from "./prompts/silverHawkSystemPrompt.js";
 
@@ -45,6 +46,10 @@ async function main() {
       console.error(`est. cost  $${cost.toFixed(5)}`);
     }
   }
+  
+  console.log("CLIENT ID:", process.env.EBAY_CLIENT_ID);
+  console.log("HI PHILIP:", process.env.EBAY_CLIENT_SECRET);
+
 
   const result = JSON.parse(rawText);
   console.log(JSON.stringify(result, null, 2));
