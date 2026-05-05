@@ -19,24 +19,21 @@ async function main() {
 
   `;
 
+  let rawText = "";
+
   for await (const message of query({
     prompt,
-    options: {
-      systemPrompt: silverHawkSystemPrompt,
-    },
+    options: { systemPrompt: silverHawkSystemPrompt },
   })) {
-    // Print human-readable output
     if (message.type === "assistant" && message.message?.content) {
       for (const block of message.message.content) {
-        if ("text" in block) {
-          console.log(block.text); // Claude's reasoning
-        } else if ("name" in block) {
-          console.log(`Tool: ${block.name}`); // Tool being called
-        }
+        if ("text" in block) rawText += block.text;
       }
-    } else if (message.type === "result") {
-      console.log(`Done: ${message.subtype}`); // Final result
     }
   }
+
+  const result = JSON.parse(rawText);
+  console.log(JSON.stringify(result, null, 2));
 }
+
 main().catch(console.error);
