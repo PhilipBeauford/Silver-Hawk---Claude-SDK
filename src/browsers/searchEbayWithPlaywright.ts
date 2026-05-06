@@ -8,19 +8,15 @@ export async function searchEbayWithPlaywright(
   searchTerm: string,
   limit = 10
 ): Promise<PlaywrightEbayListing[]> {
-  const browser = await chromium.launch({
-    headless: false,
-  });
+  const browser = await chromium.launch({ headless: false });
 
   const page = await browser.newPage();
 
   const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(
     searchTerm
-  )}&_sop=10`;
+  )}&_sop=10&LH_BIN=1&_udhi=80`;
 
-  await page.goto(url, {
-    waitUntil: "networkidle",
-  });
+  await page.goto(url, { waitUntil: "domcontentloaded" });
 
   await page.waitForSelector(".s-card");
 
@@ -29,11 +25,17 @@ export async function searchEbayWithPlaywright(
       const titleEl = item.querySelector(".s-card__title");
       const linkEl = item.querySelector(".s-card__link") as HTMLAnchorElement | null;
       const priceEl = item.querySelector(".s-card__price");
-      const shippingEl = item.querySelector(".su-styled-text.secondary.large");
+      const shippingEl = item.querySelectorAll(".su-styled-text.secondary.large")[1] ?? null;
       const imgEl = item.querySelector(".s-card__image") as HTMLImageElement | null;
 
+      const rawTitle = titleEl?.textContent?.trim() ?? "";
+      const title = rawTitle
+        .replace(/^New Listing/, "")
+        .replace(/Opens in a new window or tab$/, "")
+        .trim();
+
       return {
-        title: titleEl?.textContent?.trim() ?? "",
+        title,
         url: linkEl?.href ?? null,
         priceText: priceEl?.textContent?.trim() ?? null,
         shippingText: shippingEl?.textContent?.trim() ?? null,

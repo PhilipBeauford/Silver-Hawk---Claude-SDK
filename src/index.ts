@@ -1,8 +1,10 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { silverHawkSystemPrompt } from "./prompts/silverHawkSystemPrompt.js";
 import { searchEbayWithPlaywright } from "./browsers/searchEbayWithPlaywright.js";
 import type { NormalizedPlaywrightListing } from "./types/listing.js";
+
+const anthropic = new Anthropic();
 
 
 function parseMoney(text: string | null): number | null {
@@ -49,33 +51,28 @@ async function main() {
     ${JSON.stringify(normalizedListings, null, 2)}
   `;
 
-  // Response handling with token usage tracking
-  let rawText = "";
-  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4096,
+    system: silverHawkSystemPrompt,
+    messages: [{ role: "user", content: prompt }],
+  });
 
-  for await (const message of query({
-    prompt,
-    options: { systemPrompt: silverHawkSystemPrompt },
-  })) {
-    if (message.type === "assistant" && message.message?.usage) {
-      const msgUsage = message.message.usage;
-      usage.input      += msgUsage.input_tokens                ?? 0;
-      usage.output     += msgUsage.output_tokens               ?? 0;
-      usage.cacheRead  += msgUsage.cache_read_input_tokens     ?? 0;
-      usage.cacheWrite += msgUsage.cache_creation_input_tokens ?? 0;
-    }
-    if (message.type === "assistant" && message.message?.content) {
-      for (const block of message.message.content) {
-        if ("text" in block) rawText += block.text;
-      }
-    }
-    if (message.type === "result") {
-      // Sonnet 4.6 pricing: $3/MTok in, $15/MTok out, $3.75/MTok cache write, $0.30/MTok cache read
-      const cost = (usage.input * 3.0 + usage.output * 15.0 + usage.cacheWrite * 3.75 + usage.cacheRead * 0.30) / 1_000_000;
-      console.error(`tokens  in=${usage.input} out=${usage.output} cache_read=${usage.cacheRead} cache_write=${usage.cacheWrite}`);
-      console.error(`est. cost  $${cost.toFixed(5)}`);
-    }
-  }
+  const { usage } = response;
+  // Sonnet 4.6 pricing: $3/MTok in, $15/MTok out, $3.75/MTok cache write, $0.30/MTok cache read
+  const cost = (
+    (usage.input_tokens * 3.0) +
+    (usage.output_tokens * 15.0) +
+    ((usage.cache_creation_input_tokens ?? 0) * 3.75) +
+    ((usage.cache_read_input_tokens ?? 0) * 0.30)
+  ) / 1_000_000;
+  console.error(`tokens  in=${usage.input_tokens} out=${usage.output_tokens} cache_read=${usage.cache_read_input_tokens ?? 0} cache_write=${usage.cache_creation_input_tokens ?? 0}`);
+  console.error(`est. cost  $${cost.toFixed(5)}`);
+
+  const rawText = response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("");
 
   const result = JSON.parse(rawText);
   console.log(JSON.stringify(result, null, 2));
