@@ -2,6 +2,7 @@ import "dotenv/config";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { silverHawkSystemPrompt } from "./prompts/silverHawkSystemPrompt.js";
 import { searchEbayWithPlaywright } from "./browsers/searchEbayWithPlaywright.js";
+import type { NormalizedPlaywrightListing } from "./types/listing.js";
 
 
 function parseMoney(text: string | null): number | null {
@@ -17,16 +18,20 @@ async function main() {
   console.dir(listings, { depth: null });
 
   // 2: Normalize the listings
-  const normalizedListings = listings.map((item) => {
+  const normalizedListings: NormalizedPlaywrightListing[] = listings.map((item) => {
     const price = parseMoney(item.priceText);
     const shipping = parseMoney(item.shippingText) ?? 0;
 
     return {
+      source: "ebay",
+      sourceId: null,
       title: item.title,
       url: item.url,
       price,
       shipping,
-      totalCost: (price ?? 0) + shipping,
+      totalCost: price !== null ? price + shipping : null,
+      imageUrl: item.imageUrl,
+      notes: [],
     };
   });
   console.dir(normalizedListings, { depth: null });

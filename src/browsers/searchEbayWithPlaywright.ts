@@ -1,12 +1,5 @@
 import { chromium } from "playwright";
-
-export type PlaywrightEbayListing = {
-  title: string;
-  url: string | null;
-  priceText: string | null;
-  shippingText: string | null;
-  imageUrl: string | null;
-};
+import type { PlaywrightEbayListing } from "../types/listing.js";
 
 export async function searchEbayWithPlaywright(
   searchTerm: string,

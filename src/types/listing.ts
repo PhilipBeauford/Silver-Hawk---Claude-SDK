@@ -1,4 +1,4 @@
-export type Listing = {
+export type TestListing = {
   title: string;
   price: number;
   shipping: number;
@@ -41,6 +41,26 @@ export type NormalizedListing = {
   shipping: number;
   totalCost: number;
   condition: string | null;
+  imageUrl: string | null;
+  notes: string[];
+};
+
+export type PlaywrightEbayListing = {
+  title: string;
+  url: string | null;
+  priceText: string | null;
+  shippingText: string | null;
+  imageUrl: string | null;
+};
+
+export type NormalizedPlaywrightListing = {
+  source: "ebay";
+  sourceId: string | null;
+  title: string;
+  url: string | null;
+  price: number | null;
+  shipping: number;
+  totalCost: number | null;
   imageUrl: string | null;
   notes: string[];
 };
