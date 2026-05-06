@@ -1,25 +1,50 @@
 import "dotenv/config";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { silverHawkSystemPrompt } from "./prompts/silverHawkSystemPrompt.js";
+import { searchEbayWithPlaywright } from "./browsers/searchEbayWithPlaywright.js";
+
+
+function parseMoney(text: string | null): number | null {
+  if (!text) return null;
+  const match = text.replace(",", "").match(/\$([\d.]+)/);
+  return match ? Number(match[1]) : null;
+}
 
 async function main() {
+
+  // 1. Get live listings from playwright
+  const listings = await searchEbayWithPlaywright("sterling silver shakers", 10);
+  console.dir(listings, { depth: null });
+
+  // 2: Normalize the listings
+  const normalizedListings = listings.map((item) => {
+    const price = parseMoney(item.priceText);
+    const shipping = parseMoney(item.shippingText) ?? 0;
+
+    return {
+      title: item.title,
+      url: item.url,
+      price,
+      shipping,
+      totalCost: (price ?? 0) + shipping,
+    };
+  });
+  console.dir(normalizedListings, { depth: null });
+
+  // 3. Feed normalized listings to the agent with the system prompt - get back ratings and analysis
   const prompt = `
-    Analyze these fake listings and tell me whether each is worth pursuing based on the silver content and price. Use the deal rules and guidelines in the system prompt to evaluate each listing.:
+    Analyze these eBay listings and return ONLY valid JSON.
 
-    Title: Vintage small sterling silver salt and pepper shakers - not weighted
-    Price: $25
-    Shipping: $7
-    Claimed weight: 20g total
-    Notes: Seller says "not weighted" in description.
+    Important:
+    - These are real listings.
+    - If weight is not present, DO NOT estimate — use NEEDS MORE INFO.
+    - Do NOT include sellerMessage.
 
-    Title: Vintage Fisher sterling silver weighted base large dish 4" diameter 1" tall
-    Price: $138
-    Shipping: $10
-    Claimed weight: 316g total
-    Notes: Seller says "weighted base" in description.
-
+    Listings:
+    ${JSON.stringify(normalizedListings, null, 2)}
   `;
 
+  // Response handling with token usage tracking
   let rawText = "";
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
@@ -46,10 +71,6 @@ async function main() {
       console.error(`est. cost  $${cost.toFixed(5)}`);
     }
   }
-  
-  console.log("CLIENT ID:", process.env.EBAY_CLIENT_ID);
-  console.log("HI PHILIP:", process.env.EBAY_CLIENT_SECRET);
-
 
   const result = JSON.parse(rawText);
   console.log(JSON.stringify(result, null, 2));
