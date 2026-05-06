@@ -1,12 +1,15 @@
-import { chromium } from "playwright";
+import { chromium } from "playwright-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import type { PlaywrightEbayListing } from "../types/listing.js";
+
+chromium.use(StealthPlugin());
 
 export async function searchEbayWithPlaywright(
   searchTerm: string,
   limit = 10
 ): Promise<PlaywrightEbayListing[]> {
   const browser = await chromium.launch({
-    headless: false, // keep false while developing
+    headless: false,
   });
 
   const page = await browser.newPage();
@@ -16,18 +19,18 @@ export async function searchEbayWithPlaywright(
   )}&_sop=10`;
 
   await page.goto(url, {
-    waitUntil: "domcontentloaded",
+    waitUntil: "networkidle",
   });
 
-  await page.waitForSelector(".s-item");
+  await page.waitForSelector(".s-card");
 
-  const listings = await page.locator(".s-item").evaluateAll((items, limit) => {
+  const listings = await page.locator(".s-card").evaluateAll((items, limit) => {
     return items.slice(0, Number(limit)).map((item) => {
-      const titleEl = item.querySelector(".s-item__title");
-      const linkEl = item.querySelector(".s-item__link") as HTMLAnchorElement | null;
-      const priceEl = item.querySelector(".s-item__price");
-      const shippingEl = item.querySelector(".s-item__shipping, .s-item__logisticsCost");
-      const imgEl = item.querySelector(".s-item__image img") as HTMLImageElement | null;
+      const titleEl = item.querySelector(".s-card__title");
+      const linkEl = item.querySelector(".s-card__link") as HTMLAnchorElement | null;
+      const priceEl = item.querySelector(".s-card__price");
+      const shippingEl = item.querySelector(".su-styled-text.secondary.large");
+      const imgEl = item.querySelector(".s-card__image") as HTMLImageElement | null;
 
       return {
         title: titleEl?.textContent?.trim() ?? "",
@@ -41,5 +44,5 @@ export async function searchEbayWithPlaywright(
 
   await browser.close();
 
-  return listings.filter((item) => item.title && !item.title.includes("Shop on eBay"));
+  return listings.filter((item) => item.title && !item.title.includes("Shop on eBay") && item.title !== "");
 }
