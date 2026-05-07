@@ -18,23 +18,49 @@ async function main() {
 
   // 1. Scrape listings — general sterling shakers under $50, Fisher Sterling under $150
   console.log("Scraping general sterling shakers...");
-  const generalListings = await searchEbayWithPlaywright("sterling silver shakers", 10, 50);
+  const generalShakerListings = await searchEbayWithPlaywright("sterling silver shakers", 8, 55);
 
-  console.log("Scraping Fisher Sterling listings...");
-  const fisherListings = await searchEbayWithPlaywright("Fisher Sterling shakers", 5, 150);
+  console.log("Scraping general Fisher Sterling listings...");
+  const fisherListings = await searchEbayWithPlaywright("Fisher Sterling", 4, 150);
+
+  console.log("Scraping large sterling knife lot listings...");
+  const largeKnifeListings = await searchEbayWithPlaywright("large sterling knife lot", 4, 200);
 
   // Deduplicate by URL
   const seen = new Set<string>();
-  const allListings = [...generalListings, ...fisherListings].filter((item) => {
+  const allListings = [...generalShakerListings, ...fisherListings, ...largeKnifeListings].filter((item) => {
     if (!item.url || seen.has(item.url)) return false;
     seen.add(item.url);
     return true;
   });
 
-  console.dir(allListings, { depth: null });
+  // Pre-filter deterministic PASS conditions before Claude
+  const preFiltered = allListings.filter((item) => {
+    const t = item.title.toLowerCase();
+    const isSingleShaker = /\bshaker\b/.test(t) && !/\bshakers\b/.test(t);
+    if (isSingleShaker && t.includes("weighted")) {
+      console.log(`Pre-filtered (weighted single shaker): ${item.title}`);
+      return false;
+    }
+    if (t.includes("mop") || t.includes("mother of pearl")) {
+      console.log(`Pre-filtered (MOP/mother of pearl): ${item.title}`);
+      return false;
+    }
+    if (t.includes("celluloid")) {
+      console.log(`Pre-filtered (celluloid handles): ${item.title}`);
+      return false;
+    }
+    if (t.includes("cuff") || t.includes("cuffs")) {
+      console.log(`Pre-filtered (sterling cuffs only): ${item.title}`);
+      return false;
+    }
+    return true;
+  });
+
+  console.dir(preFiltered, { depth: null });
 
   // 2: Normalize the listings
-  const normalizedListings: NormalizedPlaywrightListing[] = allListings.map((item) => {
+  const normalizedListings: NormalizedPlaywrightListing[] = preFiltered.map((item) => {
     const price = parseMoney(item.priceText);
     const shipping = parseMoney(item.shippingText) ?? 0;
 
@@ -61,6 +87,7 @@ async function main() {
     - If weight is not present, DO NOT estimate — use NEEDS MORE INFO.
     - Include the listing url in the output.
     - Write a sellerMessage for any listing rated NEEDS MORE INFO asking specifically about total weight in grams or troy ounces.
+    - Keep riskNotes to 2 items maximum. Keep sellerMessage under 30 words.
 
     Listings:
     ${JSON.stringify(normalizedListings, null, 2)}
