@@ -2,6 +2,7 @@ import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
 import { silverHawkSystemPrompt } from "./prompts/silverHawkSystemPrompt.js";
 import { searchEbayWithPlaywright } from "./browsers/searchEbayWithPlaywright.js";
+import { searchEtsyWithApi } from "./etsy/searchEtsyWithApi.js";
 import { openEbayContactForms } from "./browsers/openEbayContactForms.js";
 import type { NormalizedPlaywrightListing } from "./types/listing.js";
 
@@ -17,18 +18,21 @@ function parseMoney(text: string | null): number | null {
 async function main() {
 
   // 1. Scrape listings — general sterling shakers under $50, Fisher Sterling under $150
-  console.log("Scraping general sterling shakers...");
+  console.log("Scraping general sterling shakers (eBay)...");
   const generalShakerListings = await searchEbayWithPlaywright("sterling silver shakers", 8, 55);
 
-  console.log("Scraping general Fisher Sterling listings...");
+  console.log("Scraping general Fisher Sterling listings (eBay)...");
   const fisherListings = await searchEbayWithPlaywright("Fisher Sterling", 4, 150);
 
-  console.log("Scraping large sterling knife lot listings...");
-  const largeKnifeListings = await searchEbayWithPlaywright("large sterling knife lot", 4, 200);
+  console.log("Fetching Etsy sterling shaker listings...");
+  const etsyShakerListings = await searchEtsyWithApi("sterling silver salt pepper shakers", 6, 50);
+
+  console.log("Fetching Etsy Fisher Sterling listings...");
+  const etsyFisherListings = await searchEtsyWithApi("Fisher Sterling", 4, 150);
 
   // Deduplicate by URL
   const seen = new Set<string>();
-  const allListings = [...generalShakerListings, ...fisherListings, ...largeKnifeListings].filter((item) => {
+  const allListings = [...generalShakerListings, ...fisherListings].filter((item) => {
     if (!item.url || seen.has(item.url)) return false;
     seen.add(item.url);
     return true;
@@ -50,6 +54,16 @@ async function main() {
       console.log(`Pre-filtered (celluloid handles): ${item.title}`);
       return false;
     }
+    const isGlassLined = t.includes("glass lined") || t.includes("glass-lined") || t.includes("glass liner");
+    const isGlassBody = !isGlassLined && (
+      t.includes("cut glass") ||
+      t.includes("crackle glass") ||
+      (t.includes("glass") && /\b(lid|lids|top|tops)\b/.test(t))
+    );
+    if (isGlassBody) {
+      console.log(`Pre-filtered (glass body shaker): ${item.title}`);
+      return false;
+    }
     if (t.includes("cuff") || t.includes("cuffs")) {
       console.log(`Pre-filtered (sterling cuffs only): ${item.title}`);
       return false;
@@ -59,13 +73,13 @@ async function main() {
 
   console.dir(preFiltered, { depth: null });
 
-  // 2: Normalize the listings
-  const normalizedListings: NormalizedPlaywrightListing[] = preFiltered.map((item) => {
+  // 2: Normalize eBay listings, then merge with already-normalized Etsy results
+  const normalizedEbay: NormalizedPlaywrightListing[] = preFiltered.map((item) => {
     const price = parseMoney(item.priceText);
     const shipping = parseMoney(item.shippingText) ?? 0;
 
     return {
-      source: "ebay",
+      source: "ebay" as const,
       sourceId: null,
       title: item.title,
       url: item.url,
@@ -76,6 +90,15 @@ async function main() {
       notes: [],
     };
   });
+
+  const seenEtsy = new Set<string>();
+  const normalizedEtsy = [...etsyShakerListings, ...etsyFisherListings].filter((item) => {
+    if (!item.url || seenEtsy.has(item.url)) return false;
+    seenEtsy.add(item.url);
+    return true;
+  });
+
+  const normalizedListings = [...normalizedEbay, ...normalizedEtsy];
   console.dir(normalizedListings, { depth: null });
 
   // 3. Feed normalized listings to the agent with the system prompt - get back ratings and analysis

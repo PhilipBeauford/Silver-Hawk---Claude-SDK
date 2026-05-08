@@ -54,7 +54,7 @@ export type PlaywrightEbayListing = {
 };
 
 export type NormalizedPlaywrightListing = {
-  source: "ebay";
+  source: "ebay" | "etsy";
   sourceId: string | null;
   title: string;
   url: string | null;
