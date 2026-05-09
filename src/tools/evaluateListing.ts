@@ -1,6 +1,6 @@
-import type { Listing } from "../types/listing.js";
+import type { TestListing } from "../types/listing.js";
 
-export function evaluateListing(listing: Listing) {
+export function evaluateListing(listing: TestListing) {
   const totalCost = listing.price + listing.shipping;
 
   if (!listing.estimatedSterlingGrams) {
