@@ -29,12 +29,10 @@ interface EtsyBatchResponse {
   results: EtsyListingWithImages[];
 }
 
-function getApiKey(): string {
+function getApiKey(): string | null {
   const keystring = process.env.ETSY_KEYSTRING;
   const secret = process.env.ETSY_SHARED_SECRET;
-  if (!keystring || !secret) {
-    throw new Error("ETSY_KEYSTRING and ETSY_SHARED_SECRET must be set in .env");
-  }
+  if (!keystring || !secret || keystring === "your_etsy_keystring") return null;
   return `${keystring}:${secret}`;
 }
 
@@ -44,6 +42,10 @@ export async function searchEtsyWithApi(
   maxPrice = 55
 ): Promise<NormalizedPlaywrightListing[]> {
   const apiKey = getApiKey();
+  if (!apiKey) {
+    console.log("Etsy credentials not set — skipping Etsy search.");
+    return [];
+  }
 
   // Fetch extra results to account for price filtering
   const fetchLimit = Math.min(limit * 3, 100);

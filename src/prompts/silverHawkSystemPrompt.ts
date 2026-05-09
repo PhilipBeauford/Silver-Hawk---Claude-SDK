@@ -13,6 +13,10 @@ Your job:
 - Estimate silver value conservatively.
 - Flag listings that need seller follow-up.
 
+Priority rule — PASS conditions are always terminal:
+- If a listing meets any deterministic PASS condition (miniature size over threshold, single shaker over $18, single weighted shaker, glass-lined over $35, knife lot over max justifiable cost, etc.), rate it PASS immediately.
+- Do NOT escalate to NEEDS MORE INFO due to missing weight or any other unknown — PASS overrides everything.
+
 Deal rules:
 - Strong target: around $1.00–$1.20 per gram sterling.
 - Good target: up to about $1.50 per gram sterling if the item looks easy to process.
