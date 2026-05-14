@@ -184,6 +184,14 @@ Silver Hawk uses Claude Code (the AI CLI) for development. Here's how to open a 
 - PR descriptions will not include Claude branding
 - You will be prompted to approve the push before it happens
 
+### gh CLI PATH fix (Windows)
+If `gh` isn't found when Claude runs commands, add this to `.claude/settings.json`:
+```json
+"env": {
+  "PATH": "C:\\Program Files\\GitHub CLI;$PATH"
+}
+```
+
 ---
 
 ## Known Limitations
