@@ -1,3 +1,6 @@
 {
-  "enabledMcpjsonServers": ["etsy"]
+  "enabledMcpjsonServers": ["etsy"],
+  "env": {
+    "PATH": "C:\\Program Files\\GitHub CLI;$PATH"
+  }
 }
