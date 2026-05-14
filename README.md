@@ -154,6 +154,46 @@ The system prompt is long and static — it benefits from [prompt caching](https
 
 ---
 
+## Creating a Pull Request with Claude
+
+Silver Hawk uses Claude Code (the AI CLI) for development. Here's how to open a PR through Claude:
+
+### Prerequisites
+- Remote must be set to HTTPS (not SSH):
+  ```bash
+  git remote set-url origin https://github.com/PhilipBeauford/Silver-Hawk---Claude-SDK.git
+  ```
+- `gh` CLI installed and authenticated (or use the GitHub URL Claude provides)
+
+### Steps
+
+1. **Make your changes** — edit files as needed with Claude's help
+
+2. **Say `gh pr create`** in the Claude chat — Claude will:
+   - Commit any unstaged changes with a descriptive message
+   - Push the branch to origin (`git push -u origin <branch>`)
+   - Create the PR against `main` with a structured summary
+
+3. **If `gh` is unavailable**, Claude will provide a direct GitHub URL to open the PR manually — e.g.:
+   ```
+   https://github.com/PhilipBeauford/Silver-Hawk---Claude-SDK/pull/new/<branch-name>
+   ```
+
+### Notes
+- Claude works on whichever branch is currently checked out
+- PR descriptions will not include Claude branding
+- You will be prompted to approve the push before it happens
+
+### gh CLI PATH fix (Windows)
+If `gh` isn't found when Claude runs commands, add this to `.claude/settings.json`:
+```json
+"env": {
+  "PATH": "C:\\Program Files\\GitHub CLI;$PATH"
+}
+```
+
+---
+
 ## Known Limitations
 
 - Search term (`"sterling silver shakers"`) is hardcoded in [src/index.ts](src/index.ts) — no CLI argument support yet
